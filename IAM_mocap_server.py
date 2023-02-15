@@ -88,28 +88,12 @@ def print_configuration(natnet_client):
 def print_commands(can_change_bitstream):
     outstring = "Commands:\n"
     outstring += "Return Data from Motive\n"
-    outstring += "  s  send data descriptions\n"
-    outstring += "  r  resume/start frame playback\n"
-    outstring += "  p  pause frame playback\n"
-    outstring += "     pause may require several seconds\n"
-    outstring += "     depending on the frame data size\n"
-    outstring += "Change Working Range\n"
-    outstring += "  o  reset Working Range to: start/current/end frame = 0/0/end of take\n"
-    outstring += "  w  set Working Range to: start/current/end frame = 1/100/1500\n"
-    outstring += "Return Data Display Modes\n"
-    outstring += "  j  print_level = 0 supress data description and mocap frame data\n"
-    outstring += "  k  print_level = 1 show data description and mocap frame data\n"
-    outstring += "  l  print_level = 20 show data description and every 20th mocap frame data\n"
-    outstring += "Change NatNet data stream version (Unicast only)\n"
-    outstring += "  3  Request 3.1 data stream (Unicast only)\n"
-    outstring += "  4  Request 4.0 data stream (Unicast only)\n"
-    outstring += "t  data structures self test (no motive/server interaction)\n"
-    outstring += "c  show configuration\n"
-    outstring += "h  print commands\n"
+    outstring += "  x  sample X data\n"
+    outstring += "  y  sample Y data\n"
+    outstring += "  s  save\n"
+
     outstring += "q  quit\n"
-    outstring += "\n"
-    outstring += "NOTE: Motive frame playback will respond differently in\n"
-    outstring += "       Endpoint, Loop, and Bounce playback modes.\n"
+
     outstring += "\n"
     outstring += "EXAMPLE: PacketClient [serverIP [ clientIP [ Multicast/Unicast]]]\n"
     outstring += "         PacketClient \"192.168.10.14\" \"192.168.10.14\" Multicast\n"
@@ -212,6 +196,8 @@ if __name__ == "__main__":
         #by default, set print level ALWAYS
         streaming_client.set_print_level(1)
 
+        NUM_MARKERS = 6
+
         while is_looping:
             inchars = input('Enter command or (\'h\' for list of commands)\n')
             if len(inchars)>0:
@@ -221,9 +207,13 @@ if __name__ == "__main__":
                     streaming_client.sample_data = True
                     time.sleep(0.1) #to prevent grabbing empty data
                     X = streaming_client.get_labeled_marker_data()
-                    X_init_pos_list.append(X)
-                    # print(f" X_init_pos_list {X_init_pos_list}")
-                    print(f"size of X_init_pos_list: {len(X_init_pos_list)} x {len(X_init_pos_list[0])} x  {len(X_init_pos_list[0][0])} ") #
+
+                    if len(X) == NUM_MARKERS:
+                        X_init_pos_list.append(X)
+                        # print(f" X_init_pos_list {X_init_pos_list}")
+                        print(f"size of X_init_pos_list: {len(X_init_pos_list)} x {len(X_init_pos_list[0])} x  {len(X_init_pos_list[0][0])} ") #
+                    else:
+                        print(f"discarding data b/c num markers detected does not match")
 
 
                 elif c1 == 'y':
@@ -231,15 +221,21 @@ if __name__ == "__main__":
                     streaming_client.sample_data = True
                     time.sleep(0.1) #to prevent grabbing empty data
                     Y = streaming_client.get_labeled_marker_data()
-                    Y_final_pos_list.append(Y)
-                    # print(f" X_init_pos_list {X_init_pos_list}")
-                    print(f"size of Y_final_pos_list: {len(Y_final_pos_list)} x {len(Y_final_pos_list[0])} x  {len(Y_final_pos_list[0][0])} ") #
+                    if len(Y) == NUM_MARKERS:
+                        Y_final_pos_list.append(Y)
+                        # print(f" X_init_pos_list {X_init_pos_list}")
+                        print(f"size of Y_final_pos_list: {len(Y_final_pos_list)} x {len(Y_final_pos_list[0])} x  {len(Y_final_pos_list[0][0])} ") #
+                    else:
+                        print(f"discarding data b/c num markers detected does not match")
 
                 elif c1 == 's':
                     print(f" ******* saved data ******* ")
-                    
-                    np.save(SAVE_PATH + 'final_X', X_init_pos_list)
-                    np.save(SAVE_PATH + 'final_Y', Y_final_pos_list)
+                    X_init_pos_list_np = np.asarray(X_init_pos_list)
+                    Y_final_pos_list_np = np.asarray(Y_final_pos_list)
+                    print(f"Y_final_pos_list_np {Y_final_pos_list_np.shape}") #K PUSH x NUM NODE x 3 pos
+
+                    np.save(SAVE_PATH + 'final_X', X_init_pos_list_np)
+                    np.save(SAVE_PATH + 'final_Y', Y_final_pos_list_np)
                     #quit
                     is_looping = False
                     streaming_client.shutdown()
