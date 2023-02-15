@@ -153,6 +153,11 @@ def my_parse_args(arg_list, args_dict):
 if __name__ == "__main__":
     print(f" ============ init script ============= ")
 
+    # iteraction data to be stored
+    X_init_pos_list = [] #K_push x NUM_NODES x 3
+    Y_final_pos_list = [] #K_push x NUM_NODES x 3
+
+
     try:
 
         optionsDict = {}
@@ -209,6 +214,11 @@ if __name__ == "__main__":
                 if c1 == 'a':
                     print(f" ******* start sample ******* ")
                     streaming_client.sample_data = True
+                    time.sleep(0.1) #to prevent grabbing empty data
+                    X = streaming_client.get_labeled_marker_data()
+                    X_init_pos_list.append(X)
+                    # print(f" X_init_pos_list {X_init_pos_list}")
+                    print(f"size of X_init_pos_list: {len(X_init_pos_list)} x {len(X_init_pos_list[0])} x  {len(X_init_pos_list[0][0])} ") #
 
 
                 elif c1 == 'b':

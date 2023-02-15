@@ -110,6 +110,9 @@ class NatNetClient:
         #added flag to sample data
         self.sample_data = False
 
+        self.labeled_marker_pos_list = []
+        
+
 
     # Client/server message ids
     NAT_CONNECT               = 0
@@ -513,6 +516,67 @@ class NatNetClient:
         marker_id = new_id & 0x0000ffff
         return model_id, marker_id
 
+     # ============================================================================================
+    def __unpack_labeled_marker_data_IAM_lab( self, data, packet_size, major, minor):
+        labeled_marker_data = MoCapData.LabeledMarkerData()
+        offset = 0
+        # Labeled markers (Version 2.3 and later)
+        labeled_marker_count = 0
+
+       
+
+        if( ( major == 2 and minor > 3 ) or major > 2 ):
+
+            #added labeled_marker_pos_list
+            self.labeled_marker_pos_list = []
+
+
+            labeled_marker_count = int.from_bytes( data[offset:offset+4], byteorder='little' )
+            offset += 4
+            trace_mf( "Labeled Marker Count:", labeled_marker_count )
+            
+            for _ in range( 0, labeled_marker_count ):
+                model_id = 0
+                marker_id = 0
+                tmp_id = int.from_bytes( data[offset:offset+4], byteorder='little' )
+                offset += 4
+                model_id, marker_id = self.__decode_marker_id(tmp_id)
+                pos = Vector3.unpack( data[offset:offset+12] )
+                offset += 12
+                size = FloatValue.unpack( data[offset:offset+4] )
+                offset += 4
+                # trace_mf("ID     : [MarkerID: %3.1d] [ModelID: %3.1d]"%(marker_id,model_id))
+                # trace_mf("  pos  : [%3.2f, %3.2f, %3.2f]"%(pos[0],pos[1],pos[2]))
+                # trace_mf("  size : [%3.2f]"%size)
+
+                marker_XYZ = [pos[0],pos[1],pos[2]]
+                self.labeled_marker_pos_list.append(marker_XYZ)
+
+
+                # Version 2.6 and later
+                param = 0
+                if( ( major == 2 and minor >= 6 ) or major > 2):
+                    param, = struct.unpack( 'h', data[offset:offset+2] )
+                    offset += 2
+                    #occluded = ( param & 0x01 ) != 0
+                    #point_cloud_solved = ( param & 0x02 ) != 0
+                    #model_solved = ( param & 0x04 ) != 0
+
+                # Version 3.0 and later
+                residual = 0.0
+                if major >= 3 :
+                    residual, = FloatValue.unpack( data[offset:offset+4] )
+                    offset += 4
+                    trace_mf( "  err  : [%3.2f]"% residual )
+
+                labeled_marker = MoCapData.LabeledMarker(tmp_id,pos,size,param, residual)
+                labeled_marker_data.add_labeled_marker(labeled_marker)
+
+        
+        return offset, labeled_marker_data
+    
+    # ============================================================================================
+
     def __unpack_labeled_marker_data( self, data, packet_size, major, minor):
         labeled_marker_data = MoCapData.LabeledMarkerData()
         offset = 0
@@ -738,7 +802,8 @@ class NatNetClient:
         skeleton_count = skeleton_data.get_skeleton_count()
 
         # Labeled Marker Data
-        rel_offset, labeled_marker_data = self.__unpack_labeled_marker_data(data[offset:], (packet_size - offset),major, minor)
+        # rel_offset, labeled_marker_data = self.__unpack_labeled_marker_data(data[offset:], (packet_size - offset),major, minor)
+        rel_offset, labeled_marker_data = self.__unpack_labeled_marker_data_IAM_lab(data[offset:], (packet_size - offset),major, minor)
         offset += rel_offset
         mocap_data.set_labeled_marker_data(labeled_marker_data)
         labeled_marker_count = labeled_marker_data.get_labeled_marker_count()
@@ -1274,20 +1339,32 @@ class NatNetClient:
         if message_id == self.NAT_FRAMEOFDATA :
             
             if self.sample_data is True:
-                trace( "Message ID  : %3.1d NAT_FRAMEOFDATA"% message_id )
-                trace( "Packet Size : ", packet_size )
+                # trace( "Message ID  : %3.1d NAT_FRAMEOFDATA"% message_id )
+                # trace( "Packet Size : ", packet_size )
 
                 offset_tmp, mocap_data = self.__unpack_mocap_data( data[offset:], packet_size, major, minor )
                 offset += offset_tmp
-                print("MoCap Frame: %d\n"%(mocap_data.prefix_data.frame_number))
+                # print("MoCap Frame: %d\n"%(mocap_data.prefix_data.frame_number))
                 # get a string version of the data for output
                 mocap_data_str=mocap_data.get_as_string()
 
                 # save mocap data into NPY
+                marker_count = mocap_data.labeled_marker_data.get_labeled_marker_count()
+                print(f" marker count {marker_count}")
+
+                # tab_str = "  "
+                # level = 0
+                # out_str = ""
+                # if not mocap_data.labeled_marker_data == None:
+                #     out_str+=mocap_data.labeled_marker_data.get_as_string(tab_str, level+1)
+                
+                # print(f" out_str {out_str}")
+                # print(f" self.labeled_marker_pos_list {self.labeled_marker_pos_list}")
+                # print(f" shape of 1 POS LIST is Nx3: {len(self.labeled_marker_pos_list)} x {len(self.labeled_marker_pos_list[0])}")
                  
 
                 #print mocap data            
-                print("%s\n"%mocap_data_str)
+                # print("%s\n"%mocap_data_str)
                 self.sample_data = False
 
         # ================================================================================================
@@ -1488,3 +1565,5 @@ class NatNetClient:
         self.command_thread.join()
         self.data_thread.join()
 
+    def get_labeled_marker_data(self):
+        return self.labeled_marker_pos_list
