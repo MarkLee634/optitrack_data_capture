@@ -1,5 +1,6 @@
 # optitrack_data_capture
 This repo is to use the Optitrack Trio camera to record 3D pos data of markers.
+
 Maintainers: Mark Lee, Sarvesh Patil
 
 # installation

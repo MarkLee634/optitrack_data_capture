@@ -110,7 +110,11 @@ class NatNetClient:
         #added flag to sample data
         self.sample_data = False
 
+        #added to return data
         self.labeled_marker_pos_list = []
+
+        #added list to check valid marker id
+        self.valid_marker_id = []
         
 
 
@@ -549,8 +553,18 @@ class NatNetClient:
                 # trace_mf("  pos  : [%3.2f, %3.2f, %3.2f]"%(pos[0],pos[1],pos[2]))
                 # trace_mf("  size : [%3.2f]"%size)
 
-                marker_XYZ = [pos[0],pos[1],pos[2]]
-                self.labeled_marker_pos_list.append(marker_XYZ)
+                # print(f" ************ model ID {model_id} marker ID {marker_id} ************")
+                if len(self.valid_marker_id) < self.NUM_MARKERS:
+                    self.valid_marker_id.append(marker_id)
+                    print(f"valid marker_ID {self.valid_marker_id}")
+
+                if marker_id in self.valid_marker_id:
+                    #add marker pos 
+                    marker_XYZ = [pos[0],pos[1],pos[2]]
+                    self.labeled_marker_pos_list.append(marker_XYZ)
+                else:
+                    print(f"markerID {marker_id} is NOT valid")
+                
 
 
                 # Version 2.6 and later
@@ -1567,3 +1581,6 @@ class NatNetClient:
 
     def get_labeled_marker_data(self):
         return self.labeled_marker_pos_list
+    
+    def set_num_markers(self, valid_marker_num):
+        self.NUM_MARKERS = valid_marker_num

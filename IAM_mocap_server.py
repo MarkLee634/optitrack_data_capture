@@ -197,13 +197,14 @@ if __name__ == "__main__":
         streaming_client.set_print_level(1)
 
         NUM_MARKERS = 6
+        streaming_client.set_num_markers(NUM_MARKERS)
 
         while is_looping:
             inchars = input('Enter command or (\'h\' for list of commands)\n')
             if len(inchars)>0:
                 c1 = inchars[0].lower()
                 if c1 == 'x':
-                    print(f" ******* start X sample ******* ")
+                    # print(f" ******* start X sample ******* ")
                     streaming_client.sample_data = True
                     time.sleep(0.1) #to prevent grabbing empty data
                     X = streaming_client.get_labeled_marker_data()
@@ -217,7 +218,7 @@ if __name__ == "__main__":
 
 
                 elif c1 == 'y':
-                    print(f" ******* start Y sample ******* ")
+                    # print(f" ******* start Y sample ******* ")
                     streaming_client.sample_data = True
                     time.sleep(0.1) #to prevent grabbing empty data
                     Y = streaming_client.get_labeled_marker_data()
